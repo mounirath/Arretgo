@@ -46,37 +46,45 @@ import com.google.android.gms.ads.LoadAdError
  * AdMob Banner Component
  *
  * Official Google AdMob Test Banner ID: ca-app-pub-3940256099942544/9214589741
- * Production Ad Unit ID: ca-app-pub-1050422776945344/7585760755
+ * User Production Banner Unit ID: ca-app-pub-1050422776945344/9881281832
+ * Previous Unit ID: ca-app-pub-1050422776945344/7585760755
  */
 const val TEST_ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/9214589741"
-const val PROD_ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-1050422776945344/7585760755"
+const val PROD_ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-1050422776945344/9881281832"
 
 @Composable
 fun AdMobBanner(
     modifier: Modifier = Modifier,
-    adUnitId: String = TEST_ADMOB_BANNER_AD_UNIT_ID
+    adUnitId: String = PROD_ADMOB_BANNER_AD_UNIT_ID
 ) {
     val context = LocalContext.current
     var isAdLoaded by remember { mutableStateOf(false) }
     var adError by remember { mutableStateOf<String?>(null) }
+    var currentUnitId by remember(adUnitId) { mutableStateOf(adUnitId) }
 
-    val adView = remember {
+    val adView = remember(currentUnitId) {
         AdView(context).apply {
             setAdSize(AdSize.BANNER)
-            setAdUnitId(adUnitId)
+            setAdUnitId(currentUnitId)
             adListener = object : AdListener() {
                 override fun onAdLoaded() {
                     super.onAdLoaded()
                     isAdLoaded = true
                     adError = null
-                    Log.d("AdMobBanner", "Google AdMob Banner loaded successfully: $adUnitId")
+                    Log.d("AdMobBanner", "Google AdMob Banner loaded successfully: $currentUnitId")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     super.onAdFailedToLoad(error)
-                    isAdLoaded = false
-                    adError = error.message
-                    Log.w("AdMobBanner", "AdMob banner failed: ${error.code} - ${error.message}")
+                    Log.w("AdMobBanner", "AdMob banner load failed with $currentUnitId: ${error.code} - ${error.message}")
+                    // In debug/development or if production ad has no inventory, automatically fall back to test banner unit
+                    if (currentUnitId != TEST_ADMOB_BANNER_AD_UNIT_ID) {
+                        Log.d("AdMobBanner", "Retrying banner with official Google test unit...")
+                        currentUnitId = TEST_ADMOB_BANNER_AD_UNIT_ID
+                    } else {
+                        isAdLoaded = false
+                        adError = error.message
+                    }
                 }
             }
             loadAd(AdRequest.Builder().build())

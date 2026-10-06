@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">ARRIVA</string>
+    <!-- Default identifiers to satisfy Google Play Services Ad measurement without google-services.json -->
+    <string name="google_app_id" translatable="false">1:1050422776945344:android:com.aistudio.arriva.kzwxmq</string>
+    <string name="project_id" translatable="false">arriva-app</string>
+    <string name="default_web_client_id" translatable="false">1050422776945344.apps.googleusercontent.com</string>
 </resources>
