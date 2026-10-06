@@ -1,0 +1,6 @@
+{
+  "name": "ARRIVA",
+  "description": "Alarme Réveil GPS transport intelligent et gestion des favoris pour ne plus jamais rater votre arrêt.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
