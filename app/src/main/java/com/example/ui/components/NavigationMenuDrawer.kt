@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Radar
@@ -87,9 +88,12 @@ fun NavigationMenuDialog(
     isSimulationMode: Boolean,
     onSimulationToggle: (Boolean) -> Unit,
     onOpenFavoritesManager: () -> Unit,
+    onOpenTripHistory: () -> Unit = {},
     currentMapStyle: MapStyle = MapStyle.GOOGLE_MAPS,
     onToggleMapStyle: () -> Unit = {},
-    userLocation: UserLocation? = null
+    userLocation: UserLocation? = null,
+    isFavoriteAlertsEnabled: Boolean = true,
+    onToggleFavoriteAlerts: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     var showGpsDetails by remember { mutableStateOf(false) }
@@ -341,10 +345,26 @@ fun NavigationMenuDialog(
                     iconBg = ArrevaDarkTokens.IconBgGold,
                     iconTint = Color(0xFFFACC15),
                     title = "Favoris",
-                    subtitle = "Gares, métros et arrêts enregistrés",
+                    subtitle = if (isFavoriteAlertsEnabled) "Gares & arrêts • Alerte d'approche active" else "Gares, métros et arrêts enregistrés",
+                    badgeText = if (isFavoriteAlertsEnabled) "Alerte ON ✓" else "OFF",
                     onClick = {
                         onDismiss()
                         onOpenFavoritesManager()
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Item: Historique des Trajets
+                DrawerMenuItem(
+                    icon = Icons.Default.History,
+                    iconBg = Color(0xFF1E293B),
+                    iconTint = ArrevaDarkTokens.AmberGlow,
+                    title = "Historique des Trajets",
+                    subtitle = "Derniers trajets et arrêts validés",
+                    onClick = {
+                        onDismiss()
+                        onOpenTripHistory()
                     }
                 )
 

@@ -9,10 +9,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@Database(entities = [FavoritePlace::class], version = 1, exportSchema = false)
+@Database(entities = [FavoritePlace::class, RecentTrip::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun favoriteDao(): FavoriteDao
+    abstract fun recentTripDao(): RecentTripDao
 
     companion object {
         @Volatile
@@ -29,10 +30,10 @@ abstract class AppDatabase : RoomDatabase() {
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
-                            // Pre-populate with essential starter transit stops
+                            // Pre-populate with essential starter transit stops and sample recent trips
                             CoroutineScope(Dispatchers.IO).launch {
-                                val dao = getInstance(context).favoriteDao()
-                                dao.insertFavorite(
+                                val favDao = getInstance(context).favoriteDao()
+                                favDao.insertFavorite(
                                     FavoritePlace(
                                         name = "Paris - Gare de Lyon",
                                         address = "Place Louis-Armand, 75012 Paris",
@@ -42,7 +43,7 @@ abstract class AppDatabase : RoomDatabase() {
                                         defaultRadiusMeters = 500
                                     )
                                 )
-                                dao.insertFavorite(
+                                favDao.insertFavorite(
                                     FavoritePlace(
                                         name = "Alger - Gare d'Agha",
                                         address = "Boulevard Mohamed V, Sidi M'Hamed",
@@ -52,7 +53,7 @@ abstract class AppDatabase : RoomDatabase() {
                                         defaultRadiusMeters = 500
                                     )
                                 )
-                                dao.insertFavorite(
+                                favDao.insertFavorite(
                                     FavoritePlace(
                                         name = "Châtelet - Les Halles",
                                         address = "Forum des Halles, Paris",
@@ -60,6 +61,32 @@ abstract class AppDatabase : RoomDatabase() {
                                         longitude = 2.3470,
                                         tag = "Métro",
                                         defaultRadiusMeters = 300
+                                    )
+                                )
+
+                                val tripDao = getInstance(context).recentTripDao()
+                                tripDao.insertTrip(
+                                    RecentTrip(
+                                        destinationName = "Alger - Gare d'Agha",
+                                        destinationAddress = "Boulevard Mohamed V, Sidi M'Hamed",
+                                        latitude = 36.7628,
+                                        longitude = 3.0583,
+                                        alertRadiusMeters = 500,
+                                        initialDistanceMeters = 3200f,
+                                        completedAt = System.currentTimeMillis() - 3600000 * 2, // 2 hours ago
+                                        wasArrivalAlertTriggered = true
+                                    )
+                                )
+                                tripDao.insertTrip(
+                                    RecentTrip(
+                                        destinationName = "Bab Ezzouar - Centre Commercial",
+                                        destinationAddress = "Bab Ezzouar, Alger",
+                                        latitude = 36.7231,
+                                        longitude = 3.1812,
+                                        alertRadiusMeters = 400,
+                                        initialDistanceMeters = 8500f,
+                                        completedAt = System.currentTimeMillis() - 3600000 * 24, // Yesterday
+                                        wasArrivalAlertTriggered = true
                                     )
                                 )
                             }

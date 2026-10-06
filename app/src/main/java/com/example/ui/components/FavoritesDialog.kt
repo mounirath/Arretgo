@@ -85,6 +85,27 @@ fun FavoritesDialog(
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
+                // Proximity Alert Feature Banner
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF063B2F))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = when (currentLanguage) {
+                            AppLanguage.AR -> "🔔 تنبيه صوتي واهتزاز تلقائي عند الاقتراب من أي مكان مفضل."
+                            AppLanguage.EN -> "🔔 Automatic sound & vibration alert when approaching any favorite place."
+                            AppLanguage.FR -> "🔔 Alerte sonore & vibration automatique à l'approche de tout favori."
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF10B981)
+                    )
+                }
+
                 if (favorites.isEmpty()) {
                     Box(
                         modifier = Modifier
@@ -157,6 +178,12 @@ fun FavoritesDialog(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                         }
+                                        Text(
+                                            text = "🔔 Alerte active à ${place.defaultRadiusMeters} m",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFF59E0B)
+                                        )
                                     }
                                     IconButton(
                                         onClick = { onDeleteFavorite(place) },

@@ -6,8 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.AppDatabase
 import com.example.data.FavoritePlace
 import com.example.data.FavoritesRepository
+import com.example.data.RecentTrip
+import com.example.data.RecentTripsRepository
 import com.example.model.AlarmTone
 import com.example.model.AppLanguage
+import com.example.model.FavoriteAlertEvent
 import com.example.model.LocationPoint
 import com.example.model.MapStyle
 import com.example.model.TripState
@@ -29,6 +32,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getInstance(application)
     private val favoritesRepository = FavoritesRepository(db.favoriteDao())
     val favorites: StateFlow<List<FavoritePlace>> = favoritesRepository.allFavorites
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    private val recentTripsRepository = RecentTripsRepository(db.recentTripDao())
+    val recentTrips: StateFlow<List<RecentTrip>> = recentTripsRepository.allRecentTrips
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val soundVibrationManager = SoundVibrationManager(application)
@@ -72,6 +79,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Trip State
     private val _tripState = MutableStateFlow(TripState())
     val tripState: StateFlow<TripState> = _tripState.asStateFlow()
+
+    // Favorite Proximity Alert State
+    private val _favoriteAlertEvent = MutableStateFlow<FavoriteAlertEvent?>(null)
+    val favoriteAlertEvent: StateFlow<FavoriteAlertEvent?> = _favoriteAlertEvent.asStateFlow()
+
+    private val _isFavoriteProximityAlertEnabled = MutableStateFlow(true)
+    val isFavoriteProximityAlertEnabled: StateFlow<Boolean> = _isFavoriteProximityAlertEnabled.asStateFlow()
+
+    private val acknowledgedFavoriteIds = mutableSetOf<Long>()
 
     // Search
     private val _searchQuery = MutableStateFlow("")
@@ -118,7 +134,87 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                 }
+
+                // Automatic Favorite Proximity Detection
+                if (_isFavoriteProximityAlertEnabled.value) {
+                    checkFavoritesProximity(userLoc)
+                }
             }
+        }
+    }
+
+    private fun checkFavoritesProximity(userLoc: UserLocation) {
+        val currentFavs = favorites.value
+        if (currentFavs.isEmpty()) return
+
+        var nearestApproachingFav: Pair<FavoritePlace, Float>? = null
+
+        for (fav in currentFavs) {
+            val dist = LocationTracker.calculateDistanceMeters(
+                userLoc.latitude,
+                userLoc.longitude,
+                fav.latitude,
+                fav.longitude
+            )
+
+            val threshold = fav.defaultRadiusMeters.toFloat()
+
+            // If user moved far away from an acknowledged favorite (> 1.5x threshold), reset it
+            if (dist > threshold * 1.5f) {
+                acknowledgedFavoriteIds.remove(fav.id)
+            }
+
+            // Check if user is within the alert radius of this favorite
+            if (dist <= threshold && !acknowledgedFavoriteIds.contains(fav.id)) {
+                if (nearestApproachingFav == null || dist < nearestApproachingFav.second) {
+                    nearestApproachingFav = Pair(fav, dist)
+                }
+            }
+        }
+
+        if (nearestApproachingFav != null) {
+            val (fav, dist) = nearestApproachingFav
+            val currentAlert = _favoriteAlertEvent.value
+
+            if (currentAlert?.favorite?.id != fav.id) {
+                _favoriteAlertEvent.value = FavoriteAlertEvent(
+                    favorite = fav,
+                    distanceMeters = dist,
+                    isRinging = true,
+                    isMuted = false
+                )
+
+                // Trigger Sound & Vibration for Favorite Arrival!
+                soundVibrationManager.startAlarmSound(_alarmTone.value)
+                if (_isVibrationEnabled.value) {
+                    soundVibrationManager.startVibration()
+                }
+            } else {
+                _favoriteAlertEvent.value = currentAlert.copy(distanceMeters = dist)
+            }
+        }
+    }
+
+    fun dismissFavoriteAlert() {
+        soundVibrationManager.stopAlarmSound()
+        soundVibrationManager.stopVibration()
+        val current = _favoriteAlertEvent.value
+        if (current != null) {
+            acknowledgedFavoriteIds.add(current.favorite.id)
+        }
+        _favoriteAlertEvent.value = null
+    }
+
+    fun muteFavoriteAlert() {
+        soundVibrationManager.stopAlarmSound()
+        soundVibrationManager.stopVibration()
+        _favoriteAlertEvent.value = _favoriteAlertEvent.value?.copy(isMuted = true, isRinging = false)
+    }
+
+    fun setFavoriteProximityAlertEnabled(enabled: Boolean) {
+        _isFavoriteProximityAlertEnabled.value = enabled
+        if (!enabled) {
+            dismissFavoriteAlert()
         }
     }
 
@@ -213,6 +309,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             locationTracker.startSimulation(dest, _alertRadius.value)
         } else {
             locationTracker.startRealLocationUpdates()
+        }
+
+        // Record trip into history
+        viewModelScope.launch {
+            recentTripsRepository.recordTrip(
+                RecentTrip(
+                    destinationName = dest.name,
+                    destinationAddress = dest.address,
+                    latitude = dest.latitude,
+                    longitude = dest.longitude,
+                    alertRadiusMeters = _alertRadius.value,
+                    initialDistanceMeters = initialDist,
+                    completedAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun deleteRecentTrip(trip: RecentTrip) {
+        viewModelScope.launch {
+            recentTripsRepository.deleteTrip(trip)
+        }
+    }
+
+    fun clearRecentTrips() {
+        viewModelScope.launch {
+            recentTripsRepository.clearHistory()
         }
     }
 

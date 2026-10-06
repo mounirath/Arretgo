@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -93,6 +94,7 @@ fun GoogleMapsBottomSheet(
     favorites: List<FavoritePlace>,
     onSelectFavorite: (FavoritePlace) -> Unit,
     onOpenFavoritesManager: () -> Unit,
+    onOpenTripHistory: () -> Unit = {},
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     currentLanguage: AppLanguage,
@@ -293,6 +295,13 @@ fun GoogleMapsBottomSheet(
                             icon = Icons.Default.Settings,
                             tint = ArrevaDarkTokens.TextLightSlate,
                             onClick = { showRadiusSettings = !showRadiusSettings }
+                        )
+
+                        // 5. [🕒] Historique des trajets
+                        SquareActionButton(
+                            icon = Icons.Default.History,
+                            tint = ArrevaDarkTokens.AmberGlow,
+                            onClick = onOpenTripHistory
                         )
                     }
                 }

@@ -39,19 +39,23 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.model.AppLanguage
+import com.example.model.FavoriteAlertEvent
 import com.example.model.LocationPoint
 import com.example.model.MapStyle
+import com.example.service.AppOpenAdManager
 import com.example.service.LocationTracker
 import com.example.service.TrackingForegroundService
 import com.example.ui.MainViewModel
 import com.example.ui.components.AddFavoriteDialog
 import com.example.ui.components.AlarmOverlay
+import com.example.ui.components.FavoriteProximityAlertOverlay
 import com.example.ui.components.FavoritesDialog
 import com.example.ui.components.GlassBackdropMesh
 import com.example.ui.components.GoogleMapsBottomSheet
 import com.example.ui.components.GoogleMapsTopBar
 import com.example.ui.components.MapFloatingControls
 import com.example.ui.components.NavigationMenuDialog
+import com.example.ui.components.TripHistoryDialog
 import com.example.ui.components.TripHud
 import com.example.ui.map.ArrivaMapView
 import com.example.ui.map.GoogleMapsComposeView
@@ -62,10 +66,14 @@ import android.util.Log
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
+    private lateinit var appOpenAdManager: AppOpenAdManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        appOpenAdManager = AppOpenAdManager(applicationContext)
+        appOpenAdManager.loadAd()
 
         // Initialize Google Maps SDK in Activity
         try {
@@ -92,6 +100,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        appOpenAdManager.showAdIfAvailable(this)
     }
 }
 
@@ -141,8 +154,12 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
+    val favoriteAlertEvent by viewModel.favoriteAlertEvent.collectAsStateWithLifecycle()
+    val isFavoriteAlertsEnabled by viewModel.isFavoriteProximityAlertEnabled.collectAsStateWithLifecycle()
+    val recentTrips by viewModel.recentTrips.collectAsStateWithLifecycle()
 
     var isFavoritesManagerOpen by remember { mutableStateOf(false) }
+    var isTripHistoryOpen by remember { mutableStateOf(false) }
     var isAddFavoriteDialogOpen by remember { mutableStateOf(false) }
     var isNavigationMenuOpen by remember { mutableStateOf(false) }
     var isFullscreenMap by remember { mutableStateOf(false) }
@@ -328,6 +345,7 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                             centerDestTrigger++
                         },
                         onOpenFavoritesManager = { isFavoritesManagerOpen = true },
+                        onOpenTripHistory = { isTripHistoryOpen = true },
                         isExpanded = isSheetExpanded,
                         onToggleExpand = { isSheetExpanded = !isSheetExpanded },
                         currentLanguage = language,
@@ -344,6 +362,37 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                 currentLanguage = language,
                 onDismissAlarm = viewModel::dismissAlarm,
                 onMuteToggle = viewModel::toggleMute
+            )
+
+            // Layer 4b: Favorite Proximity Alert Overlay (Sound / Vibration upon approaching a favorite zone)
+            FavoriteProximityAlertOverlay(
+                alertEvent = favoriteAlertEvent,
+                currentLanguage = language,
+                onDismissAlert = viewModel::dismissFavoriteAlert,
+                onMuteAlert = viewModel::muteFavoriteAlert,
+                onSetAsDestination = {
+                    favoriteAlertEvent?.let { ev ->
+                        viewModel.setDestination(
+                            LocationPoint(
+                                name = ev.favorite.name,
+                                address = ev.favorite.address,
+                                latitude = ev.favorite.latitude,
+                                longitude = ev.favorite.longitude
+                            )
+                        )
+                        viewModel.setAlertRadius(ev.favorite.defaultRadiusMeters)
+                        viewModel.startTrip()
+                        TrackingForegroundService.start(
+                            context = context,
+                            destName = ev.favorite.name,
+                            lat = ev.favorite.latitude,
+                            lng = ev.favorite.longitude,
+                            radiusMeters = ev.favorite.defaultRadiusMeters
+                        )
+                        viewModel.dismissFavoriteAlert()
+                        centerDestTrigger++
+                    }
+                }
             )
 
             // Navigation / Settings Menu Dialog (Hamburger icon matching Screenshot 2)
@@ -367,10 +416,50 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                     )
                 },
                 userLocation = userLocation,
+                isFavoriteAlertsEnabled = isFavoriteAlertsEnabled,
+                onToggleFavoriteAlerts = viewModel::setFavoriteProximityAlertEnabled,
                 onOpenFavoritesManager = {
                     isNavigationMenuOpen = false
                     isFavoritesManagerOpen = true
+                },
+                onOpenTripHistory = {
+                    isNavigationMenuOpen = false
+                    isTripHistoryOpen = true
                 }
+            )
+
+            // Dialog: Recent Trip History Screen
+            TripHistoryDialog(
+                isOpen = isTripHistoryOpen,
+                onDismiss = { isTripHistoryOpen = false },
+                recentTrips = recentTrips,
+                onRelaunchTrip = { trip ->
+                    viewModel.setDestination(
+                        LocationPoint(
+                            name = trip.destinationName,
+                            address = trip.destinationAddress,
+                            latitude = trip.latitude,
+                            longitude = trip.longitude
+                        )
+                    )
+                    viewModel.setAlertRadius(trip.alertRadiusMeters)
+                    viewModel.startTrip()
+                    TrackingForegroundService.start(
+                        context = context,
+                        destName = trip.destinationName,
+                        lat = trip.latitude,
+                        lng = trip.longitude,
+                        radiusMeters = trip.alertRadiusMeters
+                    )
+                    isTripHistoryOpen = false
+                    centerDestTrigger++
+                },
+                onSaveToFavorites = { trip ->
+                    viewModel.saveFavorite(trip.destinationName, "Gare")
+                },
+                onDeleteTrip = viewModel::deleteRecentTrip,
+                onClearAllHistory = viewModel::clearRecentTrips,
+                currentLanguage = language
             )
 
             // Dialog: Favorites List & Management

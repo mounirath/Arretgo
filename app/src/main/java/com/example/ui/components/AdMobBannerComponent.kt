@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.ui.theme.Y2KTokens
+import com.example.ui.theme.ArrevaDarkTokens
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -45,21 +45,16 @@ import com.google.android.gms.ads.LoadAdError
 /**
  * AdMob Banner Component
  *
- * Configured with user's AdMob production credentials:
- * - App ID: ca-app-pub-1050422776945344~6855047295
- * - Ad Unit ID: ca-app-pub-1050422776945344/7585760755
- *
- * Designed with the Y2K digital aesthetic:
- * - Liquid-chrome framing
- * - Cyber telemetry badge [AD // SPONSORED]
- * - Graceful fallback & error handling
+ * Official Google AdMob Test Banner ID: ca-app-pub-3940256099942544/9214589741
+ * Production Ad Unit ID: ca-app-pub-1050422776945344/7585760755
  */
-const val ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-1050422776945344/7585760755"
+const val TEST_ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/9214589741"
+const val PROD_ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-1050422776945344/7585760755"
 
 @Composable
 fun AdMobBanner(
     modifier: Modifier = Modifier,
-    adUnitId: String = ADMOB_BANNER_AD_UNIT_ID
+    adUnitId: String = TEST_ADMOB_BANNER_AD_UNIT_ID
 ) {
     val context = LocalContext.current
     var isAdLoaded by remember { mutableStateOf(false) }
@@ -74,14 +69,14 @@ fun AdMobBanner(
                     super.onAdLoaded()
                     isAdLoaded = true
                     adError = null
-                    Log.d("AdMobBanner", "Banner ad successfully loaded: $adUnitId")
+                    Log.d("AdMobBanner", "Google AdMob Banner loaded successfully: $adUnitId")
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     super.onAdFailedToLoad(error)
                     isAdLoaded = false
                     adError = error.message
-                    Log.w("AdMobBanner", "Banner ad failed to load: ${error.code} - ${error.message}")
+                    Log.w("AdMobBanner", "AdMob banner failed: ${error.code} - ${error.message}")
                 }
             }
             loadAd(AdRequest.Builder().build())
@@ -94,19 +89,18 @@ fun AdMobBanner(
         }
     }
 
-    // Y2K Liquid-Chrome Cyber Framing for the Ad Container
+    // Arreva Dark Navy & Amber Framing
     Box(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 8.dp,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = Color(0xFF00F0FF).copy(alpha = 0.25f),
-                ambientColor = Color.White.copy(alpha = 0.15f)
+                elevation = 6.dp,
+                shape = RoundedCornerShape(14.dp),
+                spotColor = Color.Black.copy(alpha = 0.5f)
             )
-            .clip(RoundedCornerShape(16.dp))
-            .background(Y2KTokens.CyberChromeDark.copy(alpha = 0.95f))
-            .border(BorderStroke(1.25.dp, Y2KTokens.ChromeBorderBrush), RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(ArrevaDarkTokens.NavyCard)
+            .border(BorderStroke(1.dp, ArrevaDarkTokens.NavyBorder), RoundedCornerShape(14.dp))
             .padding(horizontal = 8.dp, vertical = 6.dp)
             .testTag("admob_banner_container"),
         contentAlignment = Alignment.Center
@@ -115,7 +109,7 @@ fun AdMobBanner(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Y2K Monospace Telemetry Header
+            // Header Tag: SPONSORED // Google AdMob
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -126,26 +120,25 @@ fun AdMobBanner(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(5.dp)
+                            .size(6.dp)
                             .clip(CircleShape)
-                            .background(if (isAdLoaded) Y2KTokens.TextCyanGlow else Color(0xFF94A3B8))
+                            .background(if (isAdLoaded) ArrevaDarkTokens.EmeraldGps else ArrevaDarkTokens.AmberLight)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "SPONSORED // AD",
-                        fontFamily = FontFamily.Monospace,
+                        text = "ANNONCE // SPONSORED",
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        color = Y2KTokens.TextMutedSteel
+                        letterSpacing = 0.5.sp,
+                        color = ArrevaDarkTokens.TextSecondary
                     )
                 }
 
                 Text(
                     text = "Google AdMob",
-                    fontFamily = FontFamily.Monospace,
                     fontSize = 9.sp,
-                    color = Color(0xFF64748B)
+                    fontWeight = FontWeight.Medium,
+                    color = ArrevaDarkTokens.TextTertiary
                 )
             }
 
@@ -157,7 +150,7 @@ fun AdMobBanner(
                     .fillMaxWidth()
                     .height(50.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color.Black),
+                    .background(Color(0xFF020617)),
                 contentAlignment = Alignment.Center
             ) {
                 AndroidView(
@@ -167,14 +160,12 @@ fun AdMobBanner(
                         .height(50.dp)
                 )
 
-                // Placeholder / Loading indicator if ad is fetching
                 if (!isAdLoaded && adError == null) {
                     Text(
-                        text = "// CONNECTING ADMOB FEED //",
-                        fontFamily = FontFamily.Monospace,
+                        text = "Chargement de la publicité AdMob...",
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Y2KTokens.TextCyanGlow.copy(alpha = 0.70f)
+                        fontWeight = FontWeight.Medium,
+                        color = ArrevaDarkTokens.AmberLight.copy(alpha = 0.8f)
                     )
                 }
             }
