@@ -284,6 +284,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun testSpecificTone(tone: AlarmTone) {
+        if (_isTestingTone.value) {
+            soundVibrationManager.stopAlarmSound()
+            _isTestingTone.value = false
+        } else {
+            _isTestingTone.value = true
+            soundVibrationManager.testTone(tone) {
+                _isTestingTone.value = false
+            }
+        }
+    }
+
     fun startTrip() {
         val dest = _destination.value ?: return
         val userLoc = userLocation.value

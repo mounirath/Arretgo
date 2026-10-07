@@ -3,7 +3,9 @@ package com.example.model
 enum class AlarmTone(val id: String, val labelFr: String, val labelAr: String, val labelEn: String) {
     SIREN("siren", "Sirène forte", "صفارة قوية", "Loud Siren"),
     URGENT("urgent", "Bips urgents", "تنبيه سريع", "Urgent Beeps"),
-    SOFT("soft", "Carillon doux", "نغمة هادئة", "Gentle Chime")
+    SOFT("soft", "Carillon doux", "نغمة هادئة", "Gentle Chime"),
+    RADAR("radar", "Radar sonar", "سونار الرادار", "Sonar Radar"),
+    BELL("bell", "Cloche de train", "جرس القطار", "Transit Bell")
 }
 
 enum class MapStyle(val id: String, val labelFr: String, val labelAr: String, val labelEn: String) {

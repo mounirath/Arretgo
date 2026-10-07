@@ -89,6 +89,7 @@ fun NavigationMenuDialog(
     onSimulationToggle: (Boolean) -> Unit,
     onOpenFavoritesManager: () -> Unit,
     onOpenTripHistory: () -> Unit = {},
+    onOpenToneSelection: () -> Unit = {},
     currentMapStyle: MapStyle = MapStyle.GOOGLE_MAPS,
     onToggleMapStyle: () -> Unit = {},
     userLocation: UserLocation? = null,
@@ -333,8 +334,13 @@ fun NavigationMenuDialog(
                         AlarmTone.SIREN -> "Sirène"
                         AlarmTone.URGENT -> "Bips"
                         AlarmTone.SOFT -> "Doux"
+                        AlarmTone.RADAR -> "Radar"
+                        AlarmTone.BELL -> "Cloche"
                     },
-                    onClick = onTestToneToggle
+                    onClick = {
+                        onDismiss()
+                        onOpenToneSelection()
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))

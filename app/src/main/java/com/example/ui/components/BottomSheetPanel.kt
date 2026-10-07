@@ -95,6 +95,7 @@ fun GoogleMapsBottomSheet(
     onSelectFavorite: (FavoritePlace) -> Unit,
     onOpenFavoritesManager: () -> Unit,
     onOpenTripHistory: () -> Unit = {},
+    onOpenToneSelection: () -> Unit = {},
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     currentLanguage: AppLanguage,
@@ -270,7 +271,7 @@ fun GoogleMapsBottomSheet(
                         SquareActionButton(
                             icon = Icons.Default.MusicNote,
                             tint = Color(0xFF60A5FA),
-                            onClick = onTestToneToggle
+                            onClick = onOpenToneSelection
                         )
 
                         // 2. [⭐] Favoris

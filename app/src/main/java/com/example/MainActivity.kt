@@ -48,6 +48,7 @@ import com.example.service.TrackingForegroundService
 import com.example.ui.MainViewModel
 import com.example.ui.components.AddFavoriteDialog
 import com.example.ui.components.AlarmOverlay
+import com.example.ui.components.AlarmToneSelectionDialog
 import com.example.ui.components.FavoriteProximityAlertOverlay
 import com.example.ui.components.FavoritesDialog
 import com.example.ui.components.GlassBackdropMesh
@@ -160,6 +161,7 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
 
     var isFavoritesManagerOpen by remember { mutableStateOf(false) }
     var isTripHistoryOpen by remember { mutableStateOf(false) }
+    var isToneSelectionOpen by remember { mutableStateOf(false) }
     var isAddFavoriteDialogOpen by remember { mutableStateOf(false) }
     var isNavigationMenuOpen by remember { mutableStateOf(false) }
     var isFullscreenMap by remember { mutableStateOf(false) }
@@ -346,6 +348,7 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                         },
                         onOpenFavoritesManager = { isFavoritesManagerOpen = true },
                         onOpenTripHistory = { isTripHistoryOpen = true },
+                        onOpenToneSelection = { isToneSelectionOpen = true },
                         isExpanded = isSheetExpanded,
                         onToggleExpand = { isSheetExpanded = !isSheetExpanded },
                         currentLanguage = language,
@@ -425,6 +428,10 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                 onOpenTripHistory = {
                     isNavigationMenuOpen = false
                     isTripHistoryOpen = true
+                },
+                onOpenToneSelection = {
+                    isNavigationMenuOpen = false
+                    isToneSelectionOpen = true
                 }
             )
 
@@ -494,6 +501,19 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                     viewModel.saveFavorite(name, tag)
                     isAddFavoriteDialogOpen = false
                 },
+                currentLanguage = language
+            )
+
+            // Dialog: Alarm Tone Selection & Preview
+            AlarmToneSelectionDialog(
+                isOpen = isToneSelectionOpen,
+                onDismiss = { isToneSelectionOpen = false },
+                selectedTone = alarmTone,
+                onSelectTone = viewModel::setAlarmTone,
+                isTestingTone = isTestingTone,
+                onTestToneToggle = viewModel::testSpecificTone,
+                isVibrationEnabled = isVibrationEnabled,
+                onVibrationToggle = viewModel::setVibrationEnabled,
                 currentLanguage = language
             )
         }

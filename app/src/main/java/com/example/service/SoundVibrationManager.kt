@@ -99,6 +99,24 @@ class SoundVibrationManager(private val context: Context) {
                             if (!isActive) break
                             delay(400)
                         }
+                        AlarmTone.RADAR -> {
+                            // High resonant submarine sonar ping (1500Hz ping decaying with echo)
+                            playSine(audioTrack, sampleRate, 1480.0, 180)
+                            if (!isActive) break
+                            delay(100)
+                            playSine(audioTrack, sampleRate, 1480.0, 100)
+                            if (!isActive) break
+                            delay(500)
+                        }
+                        AlarmTone.BELL -> {
+                            // Classic repeating train station two-chime bell (740Hz F#5 -> 587Hz D5)
+                            playSine(audioTrack, sampleRate, 739.99, 250)
+                            if (!isActive) break
+                            delay(40)
+                            playSine(audioTrack, sampleRate, 587.33, 450)
+                            if (!isActive) break
+                            delay(600)
+                        }
                     }
                 }
             } catch (e: Exception) {
