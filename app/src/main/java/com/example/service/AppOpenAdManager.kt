@@ -20,6 +20,7 @@ class AppOpenAdManager(private val context: Context) {
 
     companion object {
         const val TEST_APP_OPEN_AD_UNIT_ID = "ca-app-pub-3940256099942544/9257395921"
+        const val PROD_APP_OPEN_AD_UNIT_ID = "ca-app-pub-1050422776945344/9720135357"
     }
 
     private var appOpenAd: AppOpenAd? = null
@@ -27,7 +28,7 @@ class AppOpenAdManager(private val context: Context) {
     private var isShowingAd = false
     private var loadTime: Long = 0
 
-    fun loadAd() {
+    fun loadAd(adUnitId: String = PROD_APP_OPEN_AD_UNIT_ID) {
         if (isLoadingAd || isAdAvailable()) {
             return
         }
@@ -36,19 +37,24 @@ class AppOpenAdManager(private val context: Context) {
         val request = AdRequest.Builder().build()
         AppOpenAd.load(
             context,
-            TEST_APP_OPEN_AD_UNIT_ID,
+            adUnitId,
             request,
             object : AppOpenAd.AppOpenAdLoadCallback() {
                 override fun onAdLoaded(ad: AppOpenAd) {
                     appOpenAd = ad
                     isLoadingAd = false
                     loadTime = Date().time
-                    Log.d("AppOpenAdManager", "Google App Open Ad loaded successfully")
+                    Log.d("AppOpenAdManager", "Google App Open Ad loaded successfully: $adUnitId")
                 }
 
                 override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                     isLoadingAd = false
-                    Log.w("AppOpenAdManager", "Google App Open Ad failed to load: ${loadAdError.message}")
+                    Log.w("AppOpenAdManager", "Google App Open Ad failed to load with $adUnitId: ${loadAdError.message}")
+                    // Fallback to official test ad unit if live unit has no inventory
+                    if (adUnitId != TEST_APP_OPEN_AD_UNIT_ID) {
+                        Log.d("AppOpenAdManager", "Falling back to official Google test App Open Ad unit...")
+                        loadAd(TEST_APP_OPEN_AD_UNIT_ID)
+                    }
                 }
             }
         )

@@ -384,6 +384,13 @@ private fun generateMapHtml(initialStyle: String, initialLat: Double, initialLng
                 attributionControl: false
             });
 
+            // OpenStreetMap Standard - using official and fast reliable tile servers
+            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                subdomains: ['a', 'b', 'c'],
+                attribution: '© OpenStreetMap contributors'
+            });
+
             // Carto Voyager (Clean, vivid Google Maps styling, 100% accessible worldwide)
             var voyagerLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 maxZoom: 19,
@@ -393,12 +400,6 @@ private fun generateMapHtml(initialStyle: String, initialLat: Double, initialLng
             // Esri Satellite (High resolution real satellite imagery)
             var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19
-            });
-
-            // OpenStreetMap Standard
-            var osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
             });
 
             // OpenTopoMap (Topographic Terrain)
@@ -421,13 +422,13 @@ private fun generateMapHtml(initialStyle: String, initialLat: Double, initialLng
                 dark: darkLayer
             };
 
-            var currentStyleKey = '$initialStyle' || 'google';
-            var currentLayer = tileLayers[currentStyleKey] || voyagerLayer;
+            var currentStyleKey = '$initialStyle' || 'osm';
+            var currentLayer = tileLayers[currentStyleKey] || osmLayer;
             currentLayer.addTo(map);
 
             window.setTileLayer = function(styleId) {
                 if (currentLayer) map.removeLayer(currentLayer);
-                currentLayer = tileLayers[styleId] || voyagerLayer;
+                currentLayer = tileLayers[styleId] || osmLayer;
                 currentLayer.addTo(map);
             };
 

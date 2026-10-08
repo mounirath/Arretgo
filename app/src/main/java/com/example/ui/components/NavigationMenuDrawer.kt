@@ -56,9 +56,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.model.AlarmTone
 import com.example.model.AppLanguage
 import com.example.model.MapStyle
@@ -302,13 +304,13 @@ fun NavigationMenuDialog(
                 // =====================================================================
                 Text(
                     text = "NAVIGATION & TRAJETS",
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = ArrevaDarkTokens.TextSecondary,
                     letterSpacing = 1.sp
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Item 1: Moteur Cartographique
                 DrawerMenuItem(
@@ -321,7 +323,7 @@ fun NavigationMenuDialog(
                     onClick = onToggleMapStyle
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Item 2: Sonneries
                 DrawerMenuItem(
@@ -343,7 +345,7 @@ fun NavigationMenuDialog(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Item 3: Favoris
                 DrawerMenuItem(
@@ -351,7 +353,7 @@ fun NavigationMenuDialog(
                     iconBg = ArrevaDarkTokens.IconBgGold,
                     iconTint = Color(0xFFFACC15),
                     title = "Favoris",
-                    subtitle = if (isFavoriteAlertsEnabled) "Gares & arrêts • Alerte d'approche active" else "Gares, métros et arrêts enregistrés",
+                    subtitle = if (isFavoriteAlertsEnabled) "Gares & arrêts • Alerte active" else "Gares et arrêts enregistrés",
                     badgeText = if (isFavoriteAlertsEnabled) "Alerte ON ✓" else "OFF",
                     onClick = {
                         onDismiss()
@@ -359,7 +361,7 @@ fun NavigationMenuDialog(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Item: Historique des Trajets
                 DrawerMenuItem(
@@ -374,7 +376,7 @@ fun NavigationMenuDialog(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Item 4: Diagnostic & Signal GPS
                 DrawerMenuItem(
@@ -386,7 +388,7 @@ fun NavigationMenuDialog(
                     onClick = { showGpsDetails = !showGpsDetails }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Item 5: Configuration AdMob / Publicité
                 DrawerMenuItem(
@@ -394,37 +396,37 @@ fun NavigationMenuDialog(
                     iconBg = ArrevaDarkTokens.IconBgPurple,
                     iconTint = Color(0xFFC084FC),
                     title = "Configuration AdMob / Publicité",
-                    subtitle = "Unity Ads & Google AdMob SDK",
+                    subtitle = "Google Mobile Ads & AdMob SDK",
                     badgeText = "Actif"
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Item 6: Activité en arrière-plan (User Request: Autoriser l'activité en arrière-plan)
+                // Item 6: Activité en arrière-plan
                 DrawerMenuItem(
                     icon = Icons.Default.ElectricBolt,
                     iconBg = ArrevaDarkTokens.IconBgEmerald,
                     iconTint = ArrevaDarkTokens.EmeraldGps,
                     title = "Activité en arrière-plan",
-                    subtitle = if (isBackgroundAllowed) "Autorisé (sans restriction de batterie)" else "Appuyer pour autoriser en arrière-plan",
+                    subtitle = if (isBackgroundAllowed) "Autorisé (sans restriction batterie)" else "Appuyer pour autoriser en arrière-plan",
                     badgeText = if (isBackgroundAllowed) "Actif ✓" else "Configurer",
                     onClick = { requestBackgroundActivity(context) }
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // =====================================================================
                 // SECTION: PRÉFÉRENCES & FOOTER (Exact match to Screenshot 2)
                 // =====================================================================
                 Text(
                     text = "PRÉFÉRENCES",
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = ArrevaDarkTokens.TextSecondary,
                     letterSpacing = 1.sp
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Footer Box: Sans compte ni inscription v1.2.0
                 Box(
@@ -471,6 +473,57 @@ fun NavigationMenuDialog(
                             color = ArrevaDarkTokens.TextSecondary,
                             lineHeight = 16.sp
                         )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Facebook Link with small official logo (User Request: https://www.facebook.com/share/1924SGgaKs/)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFF1877F2).copy(alpha = 0.12f))
+                                .border(BorderStroke(1.dp, Color(0xFF1877F2).copy(alpha = 0.35f)), RoundedCornerShape(10.dp))
+                                .clickable {
+                                    try {
+                                        val fbIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.facebook.com/share/1924SGgaKs/"))
+                                        context.startActivity(fbIntent)
+                                    } catch (_: Exception) {}
+                                }
+                                .padding(horizontal = 10.dp, vertical = 8.dp)
+                                .testTag("btn_facebook_link"),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_facebook),
+                                    contentDescription = "Facebook",
+                                    tint = Color.Unspecified, // Keep original Facebook blue & white colors
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = "Rejoignez-nous sur Facebook",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ArrevaDarkTokens.TextPrimary
+                                    )
+                                    Text(
+                                        text = "facebook.com/share/1924SGgaKs",
+                                        fontSize = 10.sp,
+                                        color = Color(0xFF60A5FA)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "Ouvrir ↗",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF60A5FA)
+                            )
+                        }
                     }
                 }
             }
@@ -491,16 +544,16 @@ private fun DrawerMenuItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp),
+            .padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Rounded Square Icon Container
+        // Compact Rounded Square Icon Container
         Box(
             modifier = Modifier
-                .size(42.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
                 .background(iconBg),
             contentAlignment = Alignment.Center
         ) {
@@ -508,23 +561,23 @@ private fun DrawerMenuItem(
                 imageVector = icon,
                 contentDescription = title,
                 tint = iconTint,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(19.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                fontSize = 15.sp,
+                fontSize = 13.5.sp,
                 fontWeight = FontWeight.Bold,
                 color = ArrevaDarkTokens.TextPrimary
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(1.dp))
             Text(
                 text = subtitle,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 color = ArrevaDarkTokens.TextSecondary
             )
         }
@@ -532,14 +585,14 @@ private fun DrawerMenuItem(
         if (badgeText != null) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(ArrevaDarkTokens.NavyCard)
-                    .border(BorderStroke(1.dp, ArrevaDarkTokens.NavyBorder), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .border(BorderStroke(1.dp, ArrevaDarkTokens.NavyBorder), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 7.dp, vertical = 3.dp)
             ) {
                 Text(
                     text = badgeText,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = ArrevaDarkTokens.TextLightSlate
                 )

@@ -46,11 +46,11 @@ import com.google.android.gms.ads.LoadAdError
  * AdMob Banner Component
  *
  * Official Google AdMob Test Banner ID: ca-app-pub-3940256099942544/9214589741
- * User Production Banner Unit ID: ca-app-pub-1050422776945344/9881281832
- * Previous Unit ID: ca-app-pub-1050422776945344/7585760755
+ * User Production Banner Unit ID: ca-app-pub-1050422776945344/9720135357
+ * Alternative Unit IDs: ca-app-pub-1050422776945344/9881281832, ca-app-pub-1050422776945344/7585760755
  */
 const val TEST_ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/9214589741"
-const val PROD_ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-1050422776945344/9881281832"
+const val PROD_ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-1050422776945344/9720135357"
 
 @Composable
 fun AdMobBanner(

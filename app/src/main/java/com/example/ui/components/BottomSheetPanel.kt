@@ -60,12 +60,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.FavoritePlace
 import com.example.model.AppLanguage
 import com.example.model.LocationPoint
@@ -138,7 +140,7 @@ fun GoogleMapsBottomSheet(
     }
 
     val animatedHeight by animateDpAsState(
-        targetValue = if (isMenuOpen) (if (showRadiusSettings) 520.dp else 420.dp) else 64.dp,
+        targetValue = if (isMenuOpen) (if (showRadiusSettings) 580.dp else 490.dp) else 64.dp,
         animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "sheet_height"
     )
@@ -168,6 +170,7 @@ fun GoogleMapsBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             // Drag handle at top center
@@ -490,6 +493,53 @@ fun GoogleMapsBottomSheet(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isBackgroundAllowed) ArrevaDarkTokens.EmeraldGps else ArrevaDarkTokens.AmberLight
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Small Facebook Link Badge
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF1877F2).copy(alpha = 0.10f))
+                        .border(BorderStroke(1.dp, Color(0xFF1877F2).copy(alpha = 0.30f)), RoundedCornerShape(8.dp))
+                        .clickable {
+                            try {
+                                val fbIntent = android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("https://www.facebook.com/share/1924SGgaKs/")
+                                )
+                                context.startActivity(fbIntent)
+                            } catch (_: Exception) {}
+                        }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .testTag("btn_bottom_sheet_facebook"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_facebook),
+                            contentDescription = "Facebook",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Rejoignez la communauté Facebook",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ArrevaDarkTokens.TextPrimary
+                        )
+                    }
+
+                    Text(
+                        text = "Suivre ↗",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF60A5FA)
                     )
                 }
 

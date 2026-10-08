@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Facebook Blue Circular Background -->
+    <path
+        android:fillColor="#1877F2"
+        android:pathData="M12,2C6.477,2 2,6.477 2,12c0,5.004 3.662,9.153 8.438,9.906V14.89H7.898v-2.89h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094,0 2.238,0.195 2.238,0.195v2.46h-1.26c-1.243,0-1.63.771-1.63,1.562v1.875h2.773l-0.443,2.89h-2.33v7.016C18.338,21.153 22,17.004 22,12C22,6.477 17.523,2 12,2z" />
+    <!-- White 'f' letterform -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M15.895,14.89l0.443,-2.89h-2.773v-1.875c0,-0.791 0.387,-1.562 1.63,-1.562h1.26v-2.46s-1.144,-0.195 -2.238,-0.195c-2.285,0 -3.777,1.384 -3.777,3.89v2.203h-2.54v2.89h2.54v7.016c0.518,0.081 1.049,0.125 1.562,0.125s1.044,-0.044 1.562,-0.125V14.89h2.33z" />
+</vector>
