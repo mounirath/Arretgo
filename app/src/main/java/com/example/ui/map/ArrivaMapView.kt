@@ -82,17 +82,15 @@ fun ArrivaMapView(
         WebView(context).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
-            settings.databaseEnabled = true
             settings.allowFileAccess = true
             settings.allowContentAccess = true
-            settings.allowFileAccessFromFileURLs = true
-            settings.allowUniversalAccessFromFileURLs = true
             settings.cacheMode = WebSettings.LOAD_DEFAULT
             settings.useWideViewPort = true
             settings.loadWithOverviewMode = true
             settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            // Set valid identifying user agent for OpenStreetMap tile servers
-            settings.userAgentString = "ArrevaGPS/1.2 (Android; Mobile OSM Map Client; contact: support@arreva.app)"
+            // Append identifying user agent token for OpenStreetMap tile policy while retaining standard WebView tokens
+            val defaultUa = settings.userAgentString ?: ""
+            settings.userAgentString = "$defaultUa ArrevaGPS/1.2 (Android; Mobile OSM Map Client; contact: support@arreva.app)"
 
             webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
@@ -208,14 +206,12 @@ private fun generateMapHtml(initialStyle: String, initialLat: Double, initialLng
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Google Maps</title>
-    <!-- Local Android Assets Leaflet Bundle with instant fallback -->
-    <link rel="stylesheet" href="leaflet/leaflet.css" />
+    <!-- Leaflet CSS & JS from local assets with online CDN fallback -->
     <link rel="stylesheet" href="file:///android_asset/leaflet/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="leaflet/leaflet.js"></script>
     <script src="file:///android_asset/leaflet/leaflet.js"></script>
     <script>
         if (typeof L === 'undefined') {
+            document.write('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">');
             document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>');
         }
     </script>

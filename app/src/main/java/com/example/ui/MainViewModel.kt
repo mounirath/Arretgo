@@ -45,14 +45,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val userLocation: StateFlow<UserLocation> = locationTracker.userLocation
 
     // UI Configuration States
-    private val _destination = MutableStateFlow<LocationPoint?>(
-        LocationPoint(
-            name = "Paris",
-            address = "Paris, Île-de-France, France",
-            latitude = 48.8566,
-            longitude = 2.3522
-        )
-    )
+    private val _destination = MutableStateFlow<LocationPoint?>(null)
     val destination: StateFlow<LocationPoint?> = _destination.asStateFlow()
 
     private val _alertRadius = MutableStateFlow(500) // 500 meters default

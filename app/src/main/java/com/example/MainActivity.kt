@@ -183,8 +183,8 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
     var isSheetExpanded by remember { mutableStateOf(true) }
 
     // Map control triggers
-    var centerUserTrigger by remember { mutableStateOf(0L) }
-    var centerDestTrigger by remember { mutableStateOf(1L) }
+    var centerUserTrigger by remember { mutableStateOf(1L) }
+    var centerDestTrigger by remember { mutableStateOf(0L) }
     var zoomInTrigger by remember { mutableStateOf(0L) }
     var zoomOutTrigger by remember { mutableStateOf(0L) }
 

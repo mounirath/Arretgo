@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MusicNote
@@ -253,15 +254,40 @@ fun GoogleMapsBottomSheet(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = destination?.name ?: "En attente de départ",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ArrevaDarkTokens.TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = destination?.name ?: "En attente de départ",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ArrevaDarkTokens.TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (destination != null) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(ArrevaDarkTokens.NavyCard)
+                                    .border(BorderStroke(1.dp, ArrevaDarkTokens.NavyBorder), CircleShape)
+                                    .clickable { onClearDestination() }
+                                    .testTag("btn_clear_destination"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Retirer la destination",
+                                    tint = ArrevaDarkTokens.TextSecondary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.width(8.dp))
 

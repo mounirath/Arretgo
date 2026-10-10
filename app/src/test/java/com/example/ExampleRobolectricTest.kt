@@ -39,4 +39,11 @@ class ExampleRobolectricTest {
     assertEquals("urgent", AlarmTone.URGENT.id)
     assertEquals("soft", AlarmTone.SOFT.id)
   }
+
+  @Test
+  fun `test initial destination is null at startup`() {
+    val app = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val viewModel = com.example.ui.MainViewModel(app)
+    org.junit.Assert.assertNull("Destination should be null/empty on startup", viewModel.destination.value)
+  }
 }

@@ -16,6 +16,16 @@ class ArrivaApplication : Application(), OnMapsSdkInitializedCallback {
 
     override fun onCreate() {
         super.onCreate()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            val processName = Application.getProcessName()
+            if (packageName != processName) {
+                try {
+                    android.webkit.WebView.setDataDirectorySuffix(processName)
+                } catch (e: Exception) {
+                    Log.w("ArrivaApplication", "Failed to set WebView data directory suffix: ${e.message}")
+                }
+            }
+        }
         initializeGoogleMapsSdk()
         initializeAdMob()
     }
