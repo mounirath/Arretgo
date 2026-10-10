@@ -31,6 +31,7 @@ class SearchService {
 
     // Pre-curated transit stations and hubs for fast instant matching & offline mode
     private val staticTransitHubs = listOf(
+        LocationPoint("Paris", "Paris, Île-de-France, France", 48.8566, 2.3522),
         LocationPoint("Paris - Gare de Lyon", "Place Louis-Armand, 75012 Paris", 48.8448, 2.3735),
         LocationPoint("Paris - Gare du Nord", "18 Rue de Dunkerque, 75010 Paris", 48.8809, 2.3553),
         LocationPoint("Paris - Gare Montparnasse", "Place Raoul Dautry, 75015 Paris", 48.8412, 2.3209),

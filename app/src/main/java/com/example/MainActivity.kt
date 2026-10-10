@@ -13,16 +13,31 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.example.ui.theme.ArrevaDarkTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -169,7 +184,7 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
 
     // Map control triggers
     var centerUserTrigger by remember { mutableStateOf(0L) }
-    var centerDestTrigger by remember { mutableStateOf(0L) }
+    var centerDestTrigger by remember { mutableStateOf(1L) }
     var zoomInTrigger by remember { mutableStateOf(0L) }
     var zoomOutTrigger by remember { mutableStateOf(0L) }
 
@@ -301,6 +316,48 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
+
+                // 'Center on Me' Floating Action Button on the Map Interface
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    FloatingActionButton(
+                        onClick = {
+                            viewModel.locationTracker.startRealLocationUpdates()
+                            centerUserTrigger++
+                        },
+                        modifier = Modifier.testTag("center_on_me_fab"),
+                        containerColor = ArrevaDarkTokens.NavyCard,
+                        contentColor = ArrevaDarkTokens.EmeraldGps,
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = FloatingActionButtonDefaults.elevation(
+                            defaultElevation = 8.dp,
+                            pressedElevation = 12.dp
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MyLocation,
+                                contentDescription = "Center on Me",
+                                tint = ArrevaDarkTokens.EmeraldGps,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Text(
+                                text = "Center on Me",
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
 
                 // Bottom Configuration & Actions Sheet
                 AnimatedVisibility(

@@ -93,7 +93,10 @@ fun GoogleMapsComposeView(
 ) {
     var selectedFavorite by remember { mutableStateOf<FavoritePlace?>(null) }
 
-    val initialPos = LatLng(userLocation.latitude, userLocation.longitude)
+    val initialPos = LatLng(
+        destination?.latitude ?: userLocation.latitude,
+        destination?.longitude ?: userLocation.longitude
+    )
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(initialPos, 14.5f)
     }
@@ -129,6 +132,18 @@ fun GoogleMapsComposeView(
                 CameraUpdateFactory.newLatLngZoom(
                     LatLng(userLocation.latitude, userLocation.longitude),
                     15.5f
+                )
+            )
+        }
+    }
+
+    LaunchedEffect(destination?.latitude, destination?.longitude) {
+        val dest = destination
+        if (dest != null) {
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(dest.latitude, dest.longitude),
+                    15.0f
                 )
             )
         }

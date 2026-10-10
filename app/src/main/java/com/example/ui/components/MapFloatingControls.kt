@@ -134,7 +134,7 @@ fun MapFloatingControls(
         ) {
             Icon(
                 imageVector = Icons.Default.MyLocation,
-                contentDescription = "Center on my location",
+                contentDescription = "Center on Me",
                 tint = ArrevaDarkTokens.EmeraldGps,
                 modifier = Modifier.size(22.dp)
             )

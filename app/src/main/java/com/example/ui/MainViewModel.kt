@@ -47,10 +47,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // UI Configuration States
     private val _destination = MutableStateFlow<LocationPoint?>(
         LocationPoint(
-            name = "Paris - Gare de Lyon",
-            address = "Place Louis-Armand, 75012 Paris",
-            latitude = 48.8448,
-            longitude = 2.3735
+            name = "Paris",
+            address = "Paris, Île-de-France, France",
+            latitude = 48.8566,
+            longitude = 2.3522
         )
     )
     val destination: StateFlow<LocationPoint?> = _destination.asStateFlow()

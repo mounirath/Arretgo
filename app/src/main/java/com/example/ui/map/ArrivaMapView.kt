@@ -149,7 +149,7 @@ fun ArrivaMapView(
     LaunchedEffect(destination?.latitude, destination?.longitude, alertRadiusMeters) {
         val dest = destination
         if (dest != null) {
-            val script = "if (window.setDestination) { window.setDestination(${dest.latitude}, ${dest.longitude}, '${dest.name.replace("'", "\\'")}', $alertRadiusMeters); }"
+            val script = "if (window.setDestination) { window.setDestination(${dest.latitude}, ${dest.longitude}, '${dest.name.replace("'", "\\'")}', $alertRadiusMeters); } if (window.centerOnDest) { window.centerOnDest(); }"
             webView.evaluateJavascript(script, null)
         } else {
             val script = "if (window.clearDestination) { window.clearDestination(); }"
@@ -166,7 +166,7 @@ fun ArrivaMapView(
     // Action Triggers
     LaunchedEffect(centerUserTrigger) {
         if (centerUserTrigger > 0L) {
-            webView.evaluateJavascript("if (window.centerOnUser) { window.centerOnUser(); }", null)
+            webView.evaluateJavascript("if (window.centerOnUser) { window.centerOnUser(${userLocation.latitude}, ${userLocation.longitude}); }", null)
         }
     }
 
@@ -394,8 +394,8 @@ private fun generateMapHtml(initialStyle: String, initialLat: Double, initialLng
 
         function initLeafletMap() {
             if (map) return;
-            var lat = $initialLat || 36.7538;
-            var lng = $initialLng || 3.0588;
+            var lat = $initialLat || 48.8566;
+            var lng = $initialLng || 2.3522;
 
             map = L.map('map', {
                 center: [lat, lng],
@@ -603,9 +603,11 @@ private fun generateMapHtml(initialStyle: String, initialLat: Double, initialLng
             }
 
             // Map Control Bridge APIs
-            window.centerOnUser = function() {
-                if (userMarker) {
-                    map.flyTo(userMarker.getLatLng(), 16, { duration: 1.2 });
+            window.centerOnUser = function(optLat, optLng) {
+                if (optLat !== undefined && optLng !== undefined) {
+                    map.flyTo([optLat, optLng], 16, { duration: 1.0 });
+                } else if (userMarker) {
+                    map.flyTo(userMarker.getLatLng(), 16, { duration: 1.0 });
                 }
             };
 
