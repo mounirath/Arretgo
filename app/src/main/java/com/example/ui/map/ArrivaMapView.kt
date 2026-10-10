@@ -82,6 +82,7 @@ fun ArrivaMapView(
         WebView(context).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
+            settings.databaseEnabled = true
             settings.allowFileAccess = true
             settings.allowContentAccess = true
             settings.allowFileAccessFromFileURLs = true
@@ -90,8 +91,8 @@ fun ArrivaMapView(
             settings.useWideViewPort = true
             settings.loadWithOverviewMode = true
             settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            // Set standard Chrome mobile User-Agent
-            settings.userAgentString = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36"
+            // Set valid identifying user agent for OpenStreetMap tile servers
+            settings.userAgentString = "ArrevaGPS/1.2 (Android; Mobile OSM Map Client; contact: support@arreva.app)"
 
             webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
@@ -103,7 +104,10 @@ fun ArrivaMapView(
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
-                    view?.evaluateJavascript("if (window.map) { window.map.invalidateSize(); }", null)
+                    view?.evaluateJavascript("""
+                        if (typeof initLeafletMap === 'function') { initLeafletMap(); }
+                        if (window.map) { window.map.invalidateSize(); }
+                    """.trimIndent(), null)
                 }
 
                 override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
@@ -116,6 +120,14 @@ fun ArrivaMapView(
             // Load using file:///android_asset/ for instant 0ms offline-ready Leaflet bundle
             loadDataWithBaseURL("file:///android_asset/", generateMapHtml(mapStyle.id, userLocation.latitude, userLocation.longitude), "text/html", "UTF-8", null)
         }
+    }
+
+    // Auto-invalidate map size when mounted to ensure full screen tile rendering
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(150)
+        webView.evaluateJavascript("if (window.map) { window.map.invalidateSize(); }", null)
+        kotlinx.coroutines.delay(500)
+        webView.evaluateJavascript("if (window.map) { window.map.invalidateSize(); }", null)
     }
 
     // Update User Location Marker in Map
@@ -196,9 +208,17 @@ private fun generateMapHtml(initialStyle: String, initialLat: Double, initialLng
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Google Maps</title>
-    <!-- Local Android Assets Leaflet Bundle (Instant 0ms, Zero Network Failure) -->
+    <!-- Local Android Assets Leaflet Bundle with instant fallback -->
+    <link rel="stylesheet" href="leaflet/leaflet.css" />
     <link rel="stylesheet" href="file:///android_asset/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="leaflet/leaflet.js"></script>
     <script src="file:///android_asset/leaflet/leaflet.js"></script>
+    <script>
+        if (typeof L === 'undefined') {
+            document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>');
+        }
+    </script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
         html, body {
@@ -384,11 +404,27 @@ private fun generateMapHtml(initialStyle: String, initialLat: Double, initialLng
                 attributionControl: false
             });
 
-            // OpenStreetMap Standard - using official and fast reliable tile servers
-            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            // OpenStreetMap Standard - fast reliable tile servers with automatic mirror recovery
+            var osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                subdomains: ['a', 'b', 'c'],
                 attribution: '© OpenStreetMap contributors'
+            });
+
+            // Auto-recovery fallback for any blocked or failed OSM tile
+            osmLayer.on('tileerror', function(error, tile) {
+                if (tile && !tile._fallbackCount) {
+                    tile._fallbackCount = 1;
+                    var z = error.coords.z;
+                    var x = error.coords.x;
+                    var y = error.coords.y;
+                    tile.src = 'https://a.tile.openstreetmap.fr/osmfr/' + z + '/' + x + '/' + y + '.png';
+                } else if (tile && tile._fallbackCount === 1) {
+                    tile._fallbackCount = 2;
+                    var z = error.coords.z;
+                    var x = error.coords.x;
+                    var y = error.coords.y;
+                    tile.src = 'https://a.basemaps.cartocdn.com/rastertiles/voyager/' + z + '/' + x + '/' + y + '.png';
+                }
             });
 
             // Carto Voyager (Clean, vivid Google Maps styling, 100% accessible worldwide)
