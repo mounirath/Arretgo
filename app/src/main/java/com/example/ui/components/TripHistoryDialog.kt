@@ -242,11 +242,6 @@ fun TripHistoryDialog(
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // AdMob Test Banner
-                    AdMobBanner(modifier = Modifier.fillMaxWidth())
                 }
             }
         }

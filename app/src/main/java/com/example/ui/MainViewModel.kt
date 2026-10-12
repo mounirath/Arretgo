@@ -1,6 +1,7 @@
 package com.example.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.AppDatabase
@@ -18,6 +19,7 @@ import com.example.model.UserLocation
 import com.example.service.LocationTracker
 import com.example.service.SearchService
 import com.example.service.SoundVibrationManager
+import com.example.service.TrackingForegroundService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +49,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // UI Configuration States
     private val _destination = MutableStateFlow<LocationPoint?>(null)
     val destination: StateFlow<LocationPoint?> = _destination.asStateFlow()
+
+    private val _pinnedStop = MutableStateFlow<LocationPoint?>(null)
+    val pinnedStop: StateFlow<LocationPoint?> = _pinnedStop.asStateFlow()
 
     private val _alertRadius = MutableStateFlow(500) // 500 meters default
     val alertRadius: StateFlow<Int> = _alertRadius.asStateFlow()
@@ -134,6 +139,47 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+
+        // Synchronize active favorite alerts from background service
+        viewModelScope.launch {
+            TrackingForegroundService.activeFavoriteAlert.collect { fav ->
+                if (fav != null) {
+                    val userLoc = userLocation.value
+                    val dist = LocationTracker.calculateDistanceMeters(
+                        userLoc.latitude,
+                        userLoc.longitude,
+                        fav.latitude,
+                        fav.longitude
+                    )
+                    _favoriteAlertEvent.value = FavoriteAlertEvent(
+                        favorite = fav,
+                        distanceMeters = dist,
+                        isRinging = true,
+                        isMuted = false
+                    )
+                }
+            }
+        }
+    }
+
+    // Background Service Monitoring States
+    val isBackgroundMonitoringActive: StateFlow<Boolean> = TrackingForegroundService.isServiceActive
+    val monitoredFavoritesCount: StateFlow<Int> = TrackingForegroundService.monitoredFavoritesCount
+
+    fun startBackgroundMonitoring(context: Context) {
+        TrackingForegroundService.startFavoriteMonitoring(context)
+    }
+
+    fun stopBackgroundMonitoring(context: Context) {
+        TrackingForegroundService.stop(context)
+    }
+
+    fun toggleBackgroundMonitoring(context: Context) {
+        if (isBackgroundMonitoringActive.value) {
+            stopBackgroundMonitoring(context)
+        } else {
+            startBackgroundMonitoring(context)
+        }
     }
 
     private fun checkFavoritesProximity(userLoc: UserLocation) {
@@ -188,12 +234,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun dismissFavoriteAlert() {
+    fun dismissFavoriteAlert(context: Context? = null) {
         soundVibrationManager.stopAlarmSound()
         soundVibrationManager.stopVibration()
         val current = _favoriteAlertEvent.value
         if (current != null) {
             acknowledgedFavoriteIds.add(current.favorite.id)
+            if (context != null) {
+                TrackingForegroundService.dismissFavoriteAlert(context, current.favorite.id)
+            }
         }
         _favoriteAlertEvent.value = null
     }
@@ -229,14 +278,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun pinTransitStop(lat: Double, lng: Double, name: String? = null, address: String? = null) {
+        val defaultName = name ?: "Arrêt épinglé (%.4f, %.4f)".format(lat, lng)
+        val defaultAddress = address ?: "Arrêt de transport sélectionné"
+        val point = LocationPoint(defaultName, defaultAddress, lat, lng)
+        _pinnedStop.value = point
+    }
+
+    fun clearPinnedStop() {
+        _pinnedStop.value = null
+    }
+
+    fun setPinnedStopAsDestination() {
+        _pinnedStop.value?.let { pin ->
+            setDestination(pin)
+        }
+    }
+
     fun setMapClickedPoint(lat: Double, lng: Double) {
-        val approxName = "Point sélectionné (%.4f, %.4f)".format(lat, lng)
-        setDestination(LocationPoint(approxName, "Coordonnées GPS directes", lat, lng))
+        val approxName = "Arrêt épinglé (%.4f, %.4f)".format(lat, lng)
+        val point = LocationPoint(approxName, "Arrêt de transport sélectionné", lat, lng)
+        _pinnedStop.value = point
+        setDestination(point)
     }
 
     fun clearDestination() {
         stopTrip()
         _destination.value = null
+        _pinnedStop.value = null
+    }
+
+    fun saveTransitStop(
+        name: String,
+        tag: String,
+        radiusMeters: Int,
+        latitude: Double,
+        longitude: Double,
+        address: String = ""
+    ) {
+        addCustomFavorite(
+            name = name,
+            address = address,
+            latitude = latitude,
+            longitude = longitude,
+            tag = tag,
+            radiusMeters = radiusMeters
+        )
+        if (_pinnedStop.value?.latitude == latitude && _pinnedStop.value?.longitude == longitude) {
+            _pinnedStop.value = null
+        }
     }
 
     fun setAlertRadius(meters: Int) {
@@ -404,7 +494,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveFavorite(name: String, tag: String) {
+    fun saveFavorite(name: String, tag: String, customRadiusMeters: Int = _alertRadius.value) {
         val dest = _destination.value ?: return
         viewModelScope.launch {
             favoritesRepository.addFavorite(
@@ -414,9 +504,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     latitude = dest.latitude,
                     longitude = dest.longitude,
                     tag = tag,
-                    defaultRadiusMeters = _alertRadius.value
+                    defaultRadiusMeters = customRadiusMeters
                 )
             )
+        }
+    }
+
+    fun addCustomFavorite(
+        name: String,
+        address: String = "",
+        latitude: Double,
+        longitude: Double,
+        tag: String = "Gare",
+        radiusMeters: Int = 500
+    ) {
+        viewModelScope.launch {
+            favoritesRepository.addFavorite(
+                FavoritePlace(
+                    name = name,
+                    address = address,
+                    latitude = latitude,
+                    longitude = longitude,
+                    tag = tag,
+                    defaultRadiusMeters = radiusMeters
+                )
+            )
+        }
+    }
+
+    fun updateFavoriteRadius(place: FavoritePlace, newRadiusMeters: Int) {
+        viewModelScope.launch {
+            favoritesRepository.updateFavorite(place.copy(defaultRadiusMeters = newRadiusMeters))
         }
     }
 

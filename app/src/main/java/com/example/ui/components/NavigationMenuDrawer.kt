@@ -37,8 +37,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Shield
@@ -99,7 +99,9 @@ fun NavigationMenuDialog(
     onToggleMapStyle: () -> Unit = {},
     userLocation: UserLocation? = null,
     isFavoriteAlertsEnabled: Boolean = true,
-    onToggleFavoriteAlerts: (Boolean) -> Unit = {}
+    onToggleFavoriteAlerts: (Boolean) -> Unit = {},
+    isBackgroundMonitoringActive: Boolean = false,
+    onToggleBackgroundMonitoring: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var showGpsDetails by remember { mutableStateOf(false) }
@@ -204,7 +206,7 @@ fun NavigationMenuDialog(
 
                     // Button: Agrandir / Détails (switch to full text drawer)
                     IconRailButton(
-                        icon = Icons.Default.MenuOpen,
+                        icon = Icons.AutoMirrored.Filled.MenuOpen,
                         iconBg = ArrevaDarkTokens.NavyCard,
                         iconTint = ArrevaDarkTokens.AmberLight,
                         label = "Détails",
@@ -595,29 +597,19 @@ fun NavigationMenuDialog(
                         onClick = { showGpsDetails = !showGpsDetails }
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Item 6: Configuration AdMob / Publicité
-                    DrawerMenuItem(
-                        icon = Icons.Default.Campaign,
-                        iconBg = ArrevaDarkTokens.IconBgPurple,
-                        iconTint = Color(0xFFC084FC),
-                        title = "Configuration AdMob / Publicité",
-                        subtitle = "Google Mobile Ads & AdMob SDK",
-                        badgeText = "Actif"
-                    )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Item 7: Activité en arrière-plan
+                    // Item 7: Surveillance arrière-plan des arrêts
                     DrawerMenuItem(
                         icon = Icons.Default.ElectricBolt,
-                        iconBg = ArrevaDarkTokens.IconBgEmerald,
-                        iconTint = ArrevaDarkTokens.EmeraldGps,
-                        title = "Activité en arrière-plan",
-                        subtitle = if (isBackgroundAllowed) "Autorisé (sans restriction batterie)" else "Appuyer pour autoriser en arrière-plan",
-                        badgeText = if (isBackgroundAllowed) "Actif ✓" else "Configurer",
-                        onClick = { requestBackgroundActivity(context) }
+                        iconBg = if (isBackgroundMonitoringActive) ArrevaDarkTokens.IconBgEmerald else ArrevaDarkTokens.NavyCard,
+                        iconTint = if (isBackgroundMonitoringActive) ArrevaDarkTokens.EmeraldGps else ArrevaDarkTokens.TextLightSlate,
+                        title = "Surveillance arrière-plan des arrêts",
+                        subtitle = if (isBackgroundMonitoringActive) "Service actif • Détection permanente des arrêts" else "Appuyer pour lancer la surveillance GPS",
+                        badgeText = if (isBackgroundMonitoringActive) "ACTIF ✓" else "DÉMARRER",
+                        onClick = onToggleBackgroundMonitoring
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))

@@ -2,16 +2,9 @@ package com.example
 
 import android.app.Application
 import android.util.Log
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.MobileAds
-import com.google.android.gms.ads.RequestConfiguration
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapsSdkInitializedCallback
 
-/**
- * ArrivaApplication - Application entry point.
- * Guarantees early initialization of Google Maps SDK and Google AdMob.
- */
 class ArrivaApplication : Application(), OnMapsSdkInitializedCallback {
 
     override fun onCreate() {
@@ -27,23 +20,6 @@ class ArrivaApplication : Application(), OnMapsSdkInitializedCallback {
             }
         }
         initializeGoogleMapsSdk()
-        initializeAdMob()
-    }
-
-    private fun initializeAdMob() {
-        Thread {
-            try {
-                val requestConfiguration = RequestConfiguration.Builder()
-                    .setTestDeviceIds(listOf(AdRequest.DEVICE_ID_EMULATOR))
-                    .build()
-                MobileAds.setRequestConfiguration(requestConfiguration)
-                MobileAds.initialize(this) { status ->
-                    Log.d("ArrivaApplication", "AdMob MobileAds initialized: $status")
-                }
-            } catch (e: Exception) {
-                Log.w("ArrivaApplication", "Non-fatal AdMob MobileAds initialization exception", e)
-            }
-        }.start()
     }
 
     private fun initializeGoogleMapsSdk() {

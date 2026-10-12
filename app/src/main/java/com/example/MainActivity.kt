@@ -1,5 +1,6 @@
 package com.example
 
+import android.app.Activity
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -57,7 +59,6 @@ import com.example.model.AppLanguage
 import com.example.model.FavoriteAlertEvent
 import com.example.model.LocationPoint
 import com.example.model.MapStyle
-import com.example.service.AppOpenAdManager
 import com.example.service.LocationTracker
 import com.example.service.TrackingForegroundService
 import com.example.ui.MainViewModel
@@ -82,14 +83,10 @@ import android.util.Log
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
-    private lateinit var appOpenAdManager: AppOpenAdManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        appOpenAdManager = AppOpenAdManager(applicationContext)
-        appOpenAdManager.loadAd()
 
         // Initialize Google Maps SDK in Activity
         try {
@@ -116,11 +113,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        appOpenAdManager.showAdIfAvailable(this)
     }
 }
 
@@ -158,6 +150,7 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
     // States from ViewModel
     val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
     val destination by viewModel.destination.collectAsStateWithLifecycle()
+    val pinnedStop by viewModel.pinnedStop.collectAsStateWithLifecycle()
     val alertRadius by viewModel.alertRadius.collectAsStateWithLifecycle()
     val alarmTone by viewModel.alarmTone.collectAsStateWithLifecycle()
     val mapStyle by viewModel.mapStyle.collectAsStateWithLifecycle()
@@ -172,6 +165,7 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val favoriteAlertEvent by viewModel.favoriteAlertEvent.collectAsStateWithLifecycle()
     val isFavoriteAlertsEnabled by viewModel.isFavoriteProximityAlertEnabled.collectAsStateWithLifecycle()
+    val isBackgroundMonitoringActive by viewModel.isBackgroundMonitoringActive.collectAsStateWithLifecycle()
     val recentTrips by viewModel.recentTrips.collectAsStateWithLifecycle()
 
     var isFavoritesManagerOpen by remember { mutableStateOf(false) }
@@ -248,12 +242,26 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                 GoogleMapsComposeView(
                     userLocation = userLocation,
                     destination = destination,
+                    pinnedStop = pinnedStop,
                     alertRadiusMeters = alertRadius,
                     mapStyle = mapStyle,
                     favorites = favorites,
                     onSelectFavorite = onSelectFavoriteStop,
                     onMapClick = { lat, lng ->
-                        viewModel.setMapClickedPoint(lat, lng)
+                        viewModel.pinTransitStop(lat, lng)
+                    },
+                    onMapLongClick = { lat, lng ->
+                        viewModel.pinTransitStop(lat, lng)
+                    },
+                    onSavePinnedStop = {
+                        isAddFavoriteDialogOpen = true
+                    },
+                    onSetPinnedAsDestination = {
+                        viewModel.setPinnedStopAsDestination()
+                        centerDestTrigger++
+                    },
+                    onClearPinnedStop = {
+                        viewModel.clearPinnedStop()
                     },
                     centerUserTrigger = centerUserTrigger,
                     centerDestTrigger = centerDestTrigger,
@@ -317,13 +325,55 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // 'Center on Me' Floating Action Button on the Map Interface
+                // Map Action Floating Buttons ('Épingler arrêt' and 'Center on Me')
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
+                    // 'Pin Transit Stop' Floating Action Button
+                    FloatingActionButton(
+                        onClick = {
+                            viewModel.pinTransitStop(
+                                lat = userLocation.latitude,
+                                lng = userLocation.longitude,
+                                name = "Arrêt de transport",
+                                address = "Position GPS actuelle"
+                            )
+                        },
+                        modifier = Modifier
+                            .testTag("pin_transit_stop_fab")
+                            .padding(end = 8.dp),
+                        containerColor = ArrevaDarkTokens.NavyCard,
+                        contentColor = Color(0xFFA855F7),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = FloatingActionButtonDefaults.elevation(
+                            defaultElevation = 8.dp,
+                            pressedElevation = 12.dp
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Place,
+                                contentDescription = "Épingler un arrêt",
+                                tint = Color(0xFFA855F7),
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Text(
+                                text = "Épingler arrêt",
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+
+                    // 'Center on Me' Floating Action Button
                     FloatingActionButton(
                         onClick = {
                             viewModel.locationTracker.startRealLocationUpdates()
@@ -428,7 +478,7 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
             FavoriteProximityAlertOverlay(
                 alertEvent = favoriteAlertEvent,
                 currentLanguage = language,
-                onDismissAlert = viewModel::dismissFavoriteAlert,
+                onDismissAlert = { viewModel.dismissFavoriteAlert(context) },
                 onMuteAlert = viewModel::muteFavoriteAlert,
                 onSetAsDestination = {
                     favoriteAlertEvent?.let { ev ->
@@ -449,7 +499,7 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                             lng = ev.favorite.longitude,
                             radiusMeters = ev.favorite.defaultRadiusMeters
                         )
-                        viewModel.dismissFavoriteAlert()
+                        viewModel.dismissFavoriteAlert(context)
                         centerDestTrigger++
                     }
                 }
@@ -478,6 +528,8 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                 userLocation = userLocation,
                 isFavoriteAlertsEnabled = isFavoriteAlertsEnabled,
                 onToggleFavoriteAlerts = viewModel::setFavoriteProximityAlertEnabled,
+                isBackgroundMonitoringActive = isBackgroundMonitoringActive,
+                onToggleBackgroundMonitoring = { viewModel.toggleBackgroundMonitoring(context) },
                 onOpenFavoritesManager = {
                     isNavigationMenuOpen = false
                     isFavoritesManagerOpen = true
@@ -519,7 +571,14 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                     centerDestTrigger++
                 },
                 onSaveToFavorites = { trip ->
-                    viewModel.saveFavorite(trip.destinationName, "Gare")
+                    viewModel.addCustomFavorite(
+                        name = trip.destinationName,
+                        address = trip.destinationAddress,
+                        latitude = trip.latitude,
+                        longitude = trip.longitude,
+                        tag = "Gare",
+                        radiusMeters = trip.alertRadiusMeters
+                    )
                 },
                 onDeleteTrip = viewModel::deleteRecentTrip,
                 onClearAllHistory = viewModel::clearRecentTrips,
@@ -545,17 +604,33 @@ fun ArrivaAppScreen(viewModel: MainViewModel) {
                     centerDestTrigger++
                 },
                 onDeleteFavorite = viewModel::deleteFavorite,
-                currentLanguage = language
+                currentLanguage = language,
+                isBackgroundMonitoringActive = isBackgroundMonitoringActive,
+                onToggleBackgroundMonitoring = { viewModel.toggleBackgroundMonitoring(context) }
             )
 
-            // Dialog: Add Destination to Favorites
+            // Dialog: Add Destination or Pinned Transit Stop to Favorites with Custom Alert Radius
+            val targetForSave = pinnedStop ?: destination
             AddFavoriteDialog(
                 isOpen = isAddFavoriteDialogOpen,
                 onDismiss = { isAddFavoriteDialogOpen = false },
-                initialName = destination?.name ?: "",
-                initialAddress = destination?.address ?: "",
-                onConfirm = { name, tag ->
-                    viewModel.saveFavorite(name, tag)
+                initialName = targetForSave?.name ?: "Arrêt de transport",
+                initialAddress = targetForSave?.address ?: "",
+                initialRadiusMeters = alertRadius,
+                onConfirm = { name, tag, customRadius ->
+                    val target = targetForSave
+                    if (target != null) {
+                        viewModel.saveTransitStop(
+                            name = name,
+                            tag = tag,
+                            radiusMeters = customRadius,
+                            latitude = target.latitude,
+                            longitude = target.longitude,
+                            address = target.address
+                        )
+                    } else {
+                        viewModel.saveFavorite(name, tag, customRadius)
+                    }
                     isAddFavoriteDialogOpen = false
                 },
                 currentLanguage = language

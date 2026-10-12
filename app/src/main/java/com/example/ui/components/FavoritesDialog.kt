@@ -30,6 +30,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,7 +61,9 @@ fun FavoritesDialog(
     favorites: List<FavoritePlace>,
     onSelectFavorite: (FavoritePlace) -> Unit,
     onDeleteFavorite: (FavoritePlace) -> Unit,
-    currentLanguage: AppLanguage
+    currentLanguage: AppLanguage,
+    isBackgroundMonitoringActive: Boolean = false,
+    onToggleBackgroundMonitoring: () -> Unit = {}
 ) {
     if (!isOpen) return
 
@@ -85,25 +89,64 @@ fun FavoritesDialog(
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Proximity Alert Feature Banner
+                // Background GPS Proximity Service Banner & Toggle
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 10.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF063B2F))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(bottom = 12.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isBackgroundMonitoringActive) Color(0xFF063B2F) else Color(0xFF1E293B))
+                        .border(
+                            androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isBackgroundMonitoringActive) Color(0xFF10B981) else Color(0xFF334155)
+                            ),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .padding(10.dp)
                 ) {
-                    Text(
-                        text = when (currentLanguage) {
-                            AppLanguage.AR -> "🔔 تنبيه صوتي واهتزاز تلقائي عند الاقتراب من أي مكان مفضل."
-                            AppLanguage.EN -> "🔔 Automatic sound & vibration alert when approaching any favorite place."
-                            AppLanguage.FR -> "🔔 Alerte sonore & vibration automatique à l'approche de tout favori."
-                        },
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF10B981)
-                    )
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = if (isBackgroundMonitoringActive) "🟢 Surveillance arrière-plan active" else "⚪ Surveillance en veille",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isBackgroundMonitoringActive) Color(0xFF34D399) else Color(0xFF94A3B8)
+                            )
+                            Button(
+                                onClick = onToggleBackgroundMonitoring,
+                                modifier = Modifier
+                                    .testTag("btn_toggle_bg_monitoring")
+                                    .height(30.dp),
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                    containerColor = if (isBackgroundMonitoringActive) Color(0xFFEF4444) else Color(0xFF10B981)
+                                ),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = if (isBackgroundMonitoringActive) "Arrêter" else "Activer",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = when (currentLanguage) {
+                                AppLanguage.AR -> "🔔 تنبيه صوتي واهتزاز فوري في الخلفية عند الاقتراب من أي محطة مفضلة."
+                                AppLanguage.EN -> "🔔 Background GPS monitors all favorite transit stops and alerts when nearby."
+                                AppLanguage.FR -> "🔔 Service en arrière-plan : alerte sonore et notification dès l'approche d'un arrêt favori."
+                            },
+                            fontSize = 10.5.sp,
+                            color = if (isBackgroundMonitoringActive) Color(0xFFA7F3D0) else Color(0xFFCBD5E1)
+                        )
+                    }
                 }
 
                 if (favorites.isEmpty()) {
@@ -224,14 +267,17 @@ fun AddFavoriteDialog(
     onDismiss: () -> Unit,
     initialName: String,
     initialAddress: String,
-    onConfirm: (name: String, tag: String) -> Unit,
+    initialRadiusMeters: Int = 500,
+    onConfirm: (name: String, tag: String, radiusMeters: Int) -> Unit,
     currentLanguage: AppLanguage
 ) {
     if (!isOpen) return
 
-    var customName by remember { mutableStateOf(initialName) }
-    var selectedTag by remember { mutableStateOf("Gare") }
-    val tags = listOf("Gare", "Métro", "Domicile", "Travail", "Autre")
+    var customName by remember(initialName) { mutableStateOf(initialName) }
+    var selectedTag by remember { mutableStateOf("Bus") }
+    var customRadius by remember(initialRadiusMeters) { mutableStateOf(initialRadiusMeters.coerceIn(100, 3000)) }
+    val tags = listOf("Bus", "Métro", "Tramway", "Gare", "Autre")
+    val radiusPresets = listOf(200, 300, 500, 800, 1000, 1500)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -303,12 +349,76 @@ fun AddFavoriteDialog(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Custom Alert Radius Section
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = when (currentLanguage) {
+                            AppLanguage.AR -> "نصف قطر التنبيه المخصص :"
+                            AppLanguage.EN -> "Custom Alert Radius:"
+                            AppLanguage.FR -> "Rayon d'alerte personnalisé :"
+                        },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "$customRadius m",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFF59E0B)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Preset chips
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    radiusPresets.forEach { r ->
+                        val isSelected = customRadius == r
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) Color(0xFFF59E0B) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.clickable { customRadius = r }
+                        ) {
+                            Text(
+                                text = "${r}m",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Slider(
+                    value = customRadius.toFloat(),
+                    onValueChange = { customRadius = (it / 50).toInt() * 50 },
+                    valueRange = 100f..3000f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFFF59E0B),
+                        activeTrackColor = Color(0xFFF59E0B),
+                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    onConfirm(customName.ifBlank { initialName }, selectedTag)
+                    onConfirm(customName.ifBlank { initialName }, selectedTag, customRadius)
                     onDismiss()
                 }
             ) {

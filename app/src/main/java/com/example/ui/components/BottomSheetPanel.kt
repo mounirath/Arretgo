@@ -40,8 +40,8 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -315,7 +315,7 @@ fun GoogleMapsBottomSheet(
 
                         // 3. [🔊] Volume
                         SquareActionButton(
-                            icon = Icons.Default.VolumeUp,
+                            icon = Icons.AutoMirrored.Filled.VolumeUp,
                             tint = Color(0xFF38BDF8),
                             onClick = onTestToneToggle
                         )
@@ -568,11 +568,6 @@ fun GoogleMapsBottomSheet(
                         color = Color(0xFF60A5FA)
                     )
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // AdMob Banner
-                AdMobBanner(modifier = Modifier.fillMaxWidth())
             }
         }
     }

@@ -15,6 +15,9 @@ interface FavoriteDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFavorite(place: FavoritePlace): Long
 
+    @androidx.room.Update
+    suspend fun updateFavorite(place: FavoritePlace)
+
     @Delete
     suspend fun deleteFavorite(place: FavoritePlace)
 

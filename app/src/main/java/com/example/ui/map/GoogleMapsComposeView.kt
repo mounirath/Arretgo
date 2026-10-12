@@ -80,11 +80,16 @@ import com.google.maps.android.compose.rememberCameraPositionState
 fun GoogleMapsComposeView(
     userLocation: UserLocation,
     destination: LocationPoint?,
+    pinnedStop: LocationPoint? = null,
     alertRadiusMeters: Int,
     mapStyle: MapStyle,
     favorites: List<FavoritePlace> = emptyList(),
     onSelectFavorite: (FavoritePlace) -> Unit = {},
     onMapClick: (Double, Double) -> Unit,
+    onMapLongClick: (Double, Double) -> Unit = onMapClick,
+    onSavePinnedStop: () -> Unit = {},
+    onSetPinnedAsDestination: () -> Unit = {},
+    onClearPinnedStop: () -> Unit = {},
     centerUserTrigger: Long = 0L,
     centerDestTrigger: Long = 0L,
     zoomInTrigger: Long = 0L,
@@ -94,8 +99,8 @@ fun GoogleMapsComposeView(
     var selectedFavorite by remember { mutableStateOf<FavoritePlace?>(null) }
 
     val initialPos = LatLng(
-        destination?.latitude ?: userLocation.latitude,
-        destination?.longitude ?: userLocation.longitude
+        destination?.latitude ?: pinnedStop?.latitude ?: userLocation.latitude,
+        destination?.longitude ?: pinnedStop?.longitude ?: userLocation.longitude
     )
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(initialPos, 14.5f)
@@ -149,6 +154,18 @@ fun GoogleMapsComposeView(
         }
     }
 
+    LaunchedEffect(pinnedStop?.latitude, pinnedStop?.longitude) {
+        val pin = pinnedStop
+        if (pin != null && destination == null) {
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(pin.latitude, pin.longitude),
+                    15.0f
+                )
+            )
+        }
+    }
+
     LaunchedEffect(centerDestTrigger) {
         if (centerDestTrigger > 0L && destination != null) {
             cameraPositionState.animate(
@@ -181,16 +198,29 @@ fun GoogleMapsComposeView(
             onMapClick = { latLng ->
                 selectedFavorite = null
                 onMapClick(latLng.latitude, latLng.longitude)
+            },
+            onMapLongClick = { latLng ->
+                selectedFavorite = null
+                onMapLongClick(latLng.latitude, latLng.longitude)
             }
         ) {
-            // 1. User Location Marker
+            // 1. User Current GPS Location Marker & Presence Pulse Circle
             Marker(
                 state = MarkerState(position = LatLng(userLocation.latitude, userLocation.longitude)),
                 title = "Votre position",
+                snippet = "GPS actif (±%.0f m)".format(userLocation.accuracyMeters),
                 icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
             )
 
-            // 2. Interactive Saved Favorite Stop Pins
+            Circle(
+                center = LatLng(userLocation.latitude, userLocation.longitude),
+                radius = userLocation.accuracyMeters.toDouble().coerceIn(15.0, 50.0),
+                fillColor = Color(0x2200E5FF),
+                strokeColor = Color(0x8000E5FF),
+                strokeWidth = 2f
+            )
+
+            // 2. Interactive Saved Favorite Transit Stop Pins from Room
             favorites.forEach { fav ->
                 val favLatLng = LatLng(fav.latitude, fav.longitude)
                 Marker(
@@ -209,7 +239,37 @@ fun GoogleMapsComposeView(
                 )
             }
 
-            // 3. Destination Marker & Geofence Circle
+            // 2b. Visual Custom Alert Radius Geofence Circle for selected favorite stop
+            selectedFavorite?.let { fav ->
+                Circle(
+                    center = LatLng(fav.latitude, fav.longitude),
+                    radius = fav.defaultRadiusMeters.toDouble(),
+                    fillColor = Color(0x2EF59E0B),
+                    strokeColor = Color(0xFFF59E0B),
+                    strokeWidth = 3f
+                )
+            }
+
+            // 3. Pinned Transit Stop Marker & Visual Geofence Radius Preview
+            pinnedStop?.let { pin ->
+                val pinLatLng = LatLng(pin.latitude, pin.longitude)
+                Marker(
+                    state = MarkerState(position = pinLatLng),
+                    title = "📌 ${pin.name}",
+                    snippet = "Arrêt de transport épinglé - Touchez pour enregistrer",
+                    icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)
+                )
+
+                Circle(
+                    center = pinLatLng,
+                    radius = alertRadiusMeters.toDouble(),
+                    fillColor = Color(0x22A855F7),
+                    strokeColor = Color(0xFFA855F7),
+                    strokeWidth = 3f
+                )
+            }
+
+            // 4. Destination Marker & Geofence Circle
             if (destination != null) {
                 val destLatLng = LatLng(destination.latitude, destination.longitude)
 
@@ -240,7 +300,29 @@ fun GoogleMapsComposeView(
             }
         }
 
-        // 4. Interactive Callout View for Tapped Favorite Stop
+        // 5. Interactive Callout View for Pinned Transit Stop
+        AnimatedVisibility(
+            visible = pinnedStop != null && selectedFavorite == null,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut() + slideOutVertically { it / 2 },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 110.dp, start = 16.dp, end = 16.dp)
+        ) {
+            val isDarkTerrain = mapStyle == MapStyle.SATELLITE || mapStyle == MapStyle.DARK
+            pinnedStop?.let { pin ->
+                PinnedTransitStopCard(
+                    pinnedStop = pin,
+                    userLocation = userLocation,
+                    isDarkTerrain = isDarkTerrain,
+                    onSaveToFavorites = onSavePinnedStop,
+                    onSetAsDestination = onSetPinnedAsDestination,
+                    onDismiss = onClearPinnedStop
+                )
+            }
+        }
+
+        // 6. Interactive Callout View for Tapped Favorite Stop
         AnimatedVisibility(
             visible = selectedFavorite != null,
             enter = fadeIn() + slideInVertically { it / 2 },
@@ -473,3 +555,207 @@ fun FavoriteStopCalloutCard(
         }
     }
 }
+
+/**
+ * Modern Interactive Callout Card for Pinned Transit Stops
+ */
+@Composable
+fun PinnedTransitStopCard(
+    pinnedStop: LocationPoint,
+    userLocation: UserLocation,
+    isDarkTerrain: Boolean = false,
+    onSaveToFavorites: () -> Unit,
+    onSetAsDestination: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val distance = remember(userLocation.latitude, userLocation.longitude, pinnedStop.latitude, pinnedStop.longitude) {
+        LocationTracker.calculateDistanceMeters(
+            userLocation.latitude,
+            userLocation.longitude,
+            pinnedStop.latitude,
+            pinnedStop.longitude
+        )
+    }
+
+    com.example.ui.theme.LiquidGlassCapsule(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("pinned_transit_stop_card"),
+        isDarkTerrain = isDarkTerrain,
+        shape = RoundedCornerShape(24.dp),
+        elevation = 20.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header: Pin Badge & Close
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFEDE9FE))
+                        .border(BorderStroke(1.dp, Color(0xFFC4B5FD)), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = Color(0xFF7C3AED),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "🚏 Arrêt de transport épinglé",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF5B21B6)
+                    )
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .testTag("btn_dismiss_pinned_stop")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Fermer l'épingle",
+                        tint = FrutigerSlate,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Stop Name
+            Text(
+                text = pinnedStop.name,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = FrutigerDeepNavy,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            if (pinnedStop.address.isNotBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = pinnedStop.address,
+                    fontSize = 12.sp,
+                    color = FrutigerSlate,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Distance Pill
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.85f))
+                        .border(BorderStroke(1.dp, Color(0xFFBAE6FD)), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.NearMe,
+                            contentDescription = null,
+                            tint = FrutigerAquaDeep,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "À ${formatDistance(distance)} de votre position",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = FrutigerMeadowDark
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Action Buttons Row: [⭐ Enregistrer l'arrêt] & [🎯 Définir destination]
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Button: Save to Favorites
+                Button(
+                    onClick = onSaveToFavorites,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFF59E0B),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .testTag("btn_save_pinned_stop")
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Enregistrer",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+
+                // Button: Set as Destination
+                Button(
+                    onClick = onSetAsDestination,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0284C7),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .testTag("btn_set_pinned_destination")
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Destination",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
