@@ -96,6 +96,7 @@ class TrackingForegroundService : Service() {
          * Start tracking for an active trip destination while simultaneously monitoring favorite stops
          */
         fun start(context: Context, destName: String, lat: Double, lng: Double, radiusMeters: Int) {
+            _isServiceActive.value = true
             val intent = Intent(context, TrackingForegroundService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_DEST_NAME, destName)
@@ -110,6 +111,7 @@ class TrackingForegroundService : Service() {
          * Start background monitoring service specifically for all saved favorite transit stops
          */
         fun startFavoriteMonitoring(context: Context) {
+            _isServiceActive.value = true
             val intent = Intent(context, TrackingForegroundService::class.java).apply {
                 action = ACTION_START_MONITORING_FAVORITES
             }
@@ -120,10 +122,16 @@ class TrackingForegroundService : Service() {
          * Stop the background tracking service
          */
         fun stop(context: Context) {
-            val intent = Intent(context, TrackingForegroundService::class.java).apply {
-                action = ACTION_STOP
-            }
-            context.stopService(intent)
+            _isServiceActive.value = false
+            try {
+                val intent = Intent(context, TrackingForegroundService::class.java).apply {
+                    action = ACTION_STOP
+                }
+                context.startService(intent)
+            } catch (_: Exception) {}
+            try {
+                context.stopService(Intent(context, TrackingForegroundService::class.java))
+            } catch (_: Exception) {}
         }
 
         /**

@@ -46,6 +46,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ViewHeadline
 import androidx.compose.material.icons.filled.ViewSidebar
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -136,10 +138,10 @@ fun NavigationMenuDialog(
 
     if (!isOpen) return
 
-    // By default, open directly in icon-only mode as requested by user
-    var isIconOnlyMode by remember { mutableStateOf(true) }
+    // By default, open full detailed drawer so user sees all options and toggles directly
+    var isIconOnlyMode by remember { mutableStateOf(false) }
     val drawerWidth by animateDpAsState(
-        targetValue = if (isIconOnlyMode) 78.dp else 295.dp,
+        targetValue = if (isIconOnlyMode) 78.dp else 305.dp,
         label = "drawerWidth"
     )
 
@@ -288,10 +290,21 @@ fun NavigationMenuDialog(
                         onClick = { showGpsDetails = !showGpsDetails }
                     )
 
-                    // Item 6: Activité en arrière-plan (Batterie)
+                    // Item 6: Activer en arrière-plan (Surveillance GPS)
                     IconRailButton(
                         icon = Icons.Default.ElectricBolt,
-                        iconBg = ArrevaDarkTokens.IconBgEmerald,
+                        iconBg = if (isBackgroundMonitoringActive) ArrevaDarkTokens.IconBgEmerald else ArrevaDarkTokens.NavyCard,
+                        iconTint = if (isBackgroundMonitoringActive) ArrevaDarkTokens.EmeraldGps else ArrevaDarkTokens.AmberLight,
+                        label = "Arrière-plan",
+                        badgeText = if (isBackgroundMonitoringActive) "ON" else "OFF",
+                        testTag = "rail_btn_background_monitoring",
+                        onClick = onToggleBackgroundMonitoring
+                    )
+
+                    // Item 6b: Optimisation Batterie
+                    IconRailButton(
+                        icon = Icons.Default.Shield,
+                        iconBg = ArrevaDarkTokens.NavyCard,
                         iconTint = if (isBackgroundAllowed) ArrevaDarkTokens.EmeraldGps else ArrevaDarkTokens.AmberLight,
                         label = "Batterie",
                         badgeText = if (isBackgroundAllowed) "OK" else "!",
@@ -509,7 +522,47 @@ fun NavigationMenuDialog(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Text(
+                        text = "SURVEILLANCE & ARRIÈRE-PLAN",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ArrevaDarkTokens.TextSecondary,
+                        letterSpacing = 1.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Main requested feature: Activer en arrière-plan with Switch
+                    DrawerMenuToggleItem(
+                        icon = Icons.Default.ElectricBolt,
+                        iconBg = if (isBackgroundMonitoringActive) ArrevaDarkTokens.IconBgEmerald else ArrevaDarkTokens.NavyCard,
+                        iconTint = if (isBackgroundMonitoringActive) ArrevaDarkTokens.EmeraldGps else ArrevaDarkTokens.TextLightSlate,
+                        title = "Activer en arrière-plan",
+                        subtitle = if (isBackgroundMonitoringActive)
+                            "Surveillance GPS active • Vos arrêts favoris sont surveillés"
+                        else
+                            "Toucher pour activer la veille GPS et les alertes d'approche",
+                        isChecked = isBackgroundMonitoringActive,
+                        onCheckedChange = { onToggleBackgroundMonitoring() },
+                        badgeText = if (isBackgroundMonitoringActive) "ACTIF ✓" else "DÉSACTIVÉ"
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Battery background authorization
+                    DrawerMenuItem(
+                        icon = Icons.Default.Shield,
+                        iconBg = if (isBackgroundAllowed) ArrevaDarkTokens.IconBgEmerald else ArrevaDarkTokens.NavyCard,
+                        iconTint = if (isBackgroundAllowed) ArrevaDarkTokens.EmeraldGps else ArrevaDarkTokens.AmberLight,
+                        title = "Autorisation de batterie",
+                        subtitle = if (isBackgroundAllowed) "Arrière-plan sans interruption autorisé ✓" else "Ignorer l'optimisation pour maintenir le GPS actif",
+                        badgeText = if (isBackgroundAllowed) "OK ✓" else "AUTORISER",
+                        onClick = { requestBackgroundActivity(context) }
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     Text(
                         text = "NAVIGATION & TRAJETS",
@@ -595,21 +648,6 @@ fun NavigationMenuDialog(
                         title = "Diagnostic & Signal GPS",
                         subtitle = "Précision en mètres, vitesse et coordonnées",
                         onClick = { showGpsDetails = !showGpsDetails }
-                    )
-
-
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Item 7: Surveillance arrière-plan des arrêts
-                    DrawerMenuItem(
-                        icon = Icons.Default.ElectricBolt,
-                        iconBg = if (isBackgroundMonitoringActive) ArrevaDarkTokens.IconBgEmerald else ArrevaDarkTokens.NavyCard,
-                        iconTint = if (isBackgroundMonitoringActive) ArrevaDarkTokens.EmeraldGps else ArrevaDarkTokens.TextLightSlate,
-                        title = "Surveillance arrière-plan des arrêts",
-                        subtitle = if (isBackgroundMonitoringActive) "Service actif • Détection permanente des arrêts" else "Appuyer pour lancer la surveillance GPS",
-                        badgeText = if (isBackgroundMonitoringActive) "ACTIF ✓" else "DÉMARRER",
-                        onClick = onToggleBackgroundMonitoring
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -915,3 +953,101 @@ private fun DrawerMenuItem(
         }
     }
 }
+
+@Composable
+private fun DrawerMenuToggleItem(
+    icon: ImageVector,
+    iconBg: Color,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    badgeText: String? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isChecked) Color(0xFF0F291E) else ArrevaDarkTokens.NavyCard.copy(alpha = 0.6f)
+            )
+            .border(
+                BorderStroke(
+                    if (isChecked) 1.5.dp else 1.dp,
+                    if (isChecked) ArrevaDarkTokens.EmeraldGps else ArrevaDarkTokens.NavyBorder
+                ),
+                RoundedCornerShape(12.dp)
+            )
+            .clickable { onCheckedChange(!isChecked) }
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .testTag("item_toggle_background_monitoring"),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(iconBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = iconTint,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ArrevaDarkTokens.TextPrimary
+                )
+                if (badgeText != null) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isChecked) Color(0xFF064E3B) else Color(0xFF334155))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = badgeText,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isChecked) Color(0xFF34D399) else Color(0xFF94A3B8)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                color = ArrevaDarkTokens.TextSecondary,
+                lineHeight = 14.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Switch(
+            checked = isChecked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = ArrevaDarkTokens.EmeraldGps,
+                uncheckedThumbColor = ArrevaDarkTokens.TextLightSlate,
+                uncheckedTrackColor = ArrevaDarkTokens.NavySurface
+            ),
+            modifier = Modifier.testTag("switch_background_monitoring")
+        )
+    }
+}
+
